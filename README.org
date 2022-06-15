@@ -1,0 +1,44 @@
+#+title: envutils
+#+author: Sholde
+#+date: 15 June 2022
+
+*envutils* is a tool for managing path environment variables. It follows the
+standard and therefore allows to manage standard environment variables like:
+~PATH~ for binaries paths, ~LD_LIBRARY_PATH~ and ~LIBRARY_PATH~ for libraries
+paths, and ~CPATH~ for include paths.
+
+* Installation
+
+  Change ~INSTALL_PREFIX~ to the path where you want to install *envutils*.
+  It is recommended to install it on ~/usr/local/bin~.
+
+  #+begin_src shell
+    $ git clone https://github.com/Sholde/envutils.git
+    $ cd envutils
+    $ sudo mv envutils INSTALL_PREFIX
+  #+end_src
+
+* Usage
+
+  #+begin_src txt
+$ envutils --help
+Usage: envutils [options] [variable] ...
+
+Without option:                   Print the PATH of all directories in all environment
+                                  variables in ENVUTILS_LIST
+
+Options:
+    -v, --version                 Display the version
+    -h, --help                    Display this help
+    -l, --list                    Display the list of environment variables handled by envutils
+    -s, --show ENV_VAR            Display the content of ENV_VAR environment variable
+    -sc, --show-content ENV_VAR   Display the content of all directories in ENV_VAR environment variable
+    -sac, --show-all-content      Display the contents of all directories in all environment
+                                  variables in ENVUTILS_LIST
+    -f, --find SYMBOL             Find the symbol SYMBOL in all directories in ENVUTILS_LIST
+    -c, --clean [ENV_VAR]         Delete unnecessary colons (:) in ENV_VAR
+    --install PATH                Install PATH to standart environment variables
+    --uninstall PATH              Uninstall PATH from standart environment variables
+
+NOTE: variables surrounded by brackets [] are optional.
+  #+end_src

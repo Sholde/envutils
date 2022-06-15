@@ -1,0 +1,373 @@
+#!/bin/sh
+
+#
+# Copyright 2022 Sholde
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+###
+# envutils variables
+###
+ENVUTILS_VERSION=0.1.0
+ENVUTILS_LIST="PATH LD_LIBRARY_PATH LIBRARY_PATH CPATH"
+ENVUTILS_ERROR_CODE=0
+
+###
+# helpers
+###
+
+# Print empty line
+print_empty_line() {
+    echo ""
+}
+
+# Print ${1} in red if this script prints on stdout and the terminal uses colors
+print_red() {
+    if [ -t 1 ] && [ "${COLORTERM}" == "truecolor" ] ; then
+        echo -ne "\033[1;31m${1}\033[0m"
+    else # run on pipe
+        echo -n ${1}
+    fi
+}
+
+# Get the shell name
+get_shell=$(ps -p ${$} | sed -n 2p | awk '{ print $(NF) }')
+
+# Delete unnecessary colons (:) in ${1} environment variable
+clean_env() {
+    #
+    if [ "${0}" == "${get_shell}" ] ; then
+        #
+        env_var=${1}
+        new_value=$(env | grep "^${env_var}=" 2> /dev/null \
+                        | sed -e "s/${env_var}=//g" \
+                        | sed -e "s/^::*//g" -e "s/:*:$//g" -e "s/::*/:/g")
+        export ${env_var}=${new_value}
+    else
+        print_red "Error: please 'source' this script in the way to set envrinoment variables\n"
+        print_red "Try: source ${0}\n"
+        ENVUTILS_ERROR_CODE=1
+    fi
+}
+
+###
+# Script
+###
+if [ "${#}" -ne "0" ] ; then
+    case ${1} in
+        -v | --version)
+            # Print version
+            echo "envutils (ENVUTILS) ${ENVUTILS_VERSION}"
+            echo "GNU General Public License v3.0"
+            ;;
+
+        -h | --help)
+            # Print help
+            echo "Usage: envutils [options] [variable] ..."
+            echo ""
+            echo "Without option:                   Print the PATH of all directories in all environment "
+            echo "                                  variables in ENVUTILS_LIST"
+            echo ""
+            echo "Options:"
+            echo "    -v, --version                 Display the version"
+            echo "    -h, --help                    Display this help"
+            echo "    -l, --list                    Display the list of environment variables handled by envutils"
+            echo "    -s, --show ENV_VAR            Display the content of ENV_VAR environment variable"
+            echo "    -sc, --show-content ENV_VAR   Display the content of all directories in ENV_VAR environment variable"
+            echo "    -sac, --show-all-content      Display the contents of all directories in all environment "
+            echo "                                  variables in ENVUTILS_LIST"
+            echo "    -f, --find SYMBOL             Find the symbol SYMBOL in all directories in ENVUTILS_LIST"
+            echo "    -c, --clean [ENV_VAR]         Delete unnecessary colons (:) in ENV_VAR"
+            echo "    --install PATH                Install PATH to standard environment variables"
+            echo "    --uninstall PATH              Uninstall PATH from standard environment variables"
+            echo ""
+            echo "NOTE: variables surrounded by brackets [] are optional."
+            ;;
+
+        -l | --list)
+            # Display the list of environment variables handled by envutils
+            echo "List of environment variables that envutils handle:"
+            for env_var in ${ENVUTILS_LIST} ; do
+                echo "    ${env_var}"
+            done
+            ;;
+
+        -s | --show)
+            # Display the content of ${2} environment variable
+            env_var=${2}
+            # Check if the variable is set
+            list_dirs=$(env | grep "^${env_var}=" 2> /dev/null)
+            list_dirs=${list_dirs#*=}
+            if [ ! -z "${list_dirs}" ] ; then
+                # Print the environment variable
+                echo "${env_var}"
+                for i in $(seq 1 1 ${#env_var}) ; do
+                    echo -n "="
+                done
+                print_empty_line
+
+                # Set the delimiter to :
+                old_ifs=${IFS}
+                IFS=:
+
+                # Visit all directories in $env_var
+                for dir in ${list_dirs} ; do
+                    if [ -d ${dir} ] ; then
+                        ls --color=auto -d ${dir} 2> /dev/null
+                    else
+                        echo -n ${dir}
+                        echo -n " -- "
+                        print_red "Warning: this is not a directory"
+                        print_empty_line
+                    fi
+                done
+
+                #
+                print_empty_line
+                IFS=${old_ifs}
+            fi
+            ;;
+
+        -sc | --show-content)
+            # Display the content of all directories in ${2} environment variable
+            env_var=${2}
+            # Check if the variable is set
+            list_dirs=$(env | grep "^${env_var}=" 2> /dev/null)
+            list_dirs=${list_dirs#*=}
+            if [ ! -z "${list_dirs}" ] ; then
+                # Print the environment variable
+                echo "${env_var}"
+                for i in $(seq 1 1 ${#env_var}) ; do
+                    echo -n "="
+                done
+                print_empty_line
+
+                # Set the delimiter to :
+                old_ifs=${IFS}
+                IFS=:
+
+                # Visit all directories in $env_var
+                for dir in ${list_dirs} ; do
+                    if [ -d ${dir} ] ; then
+                        ls --color=auto -d ${dir} 2> /dev/null
+                        ls --color=auto ${dir}
+                    else
+                        echo -n ${dir}
+                        echo -n " -- "
+                        print_red "Warning: this is not a directory"
+                        print_empty_line
+                    fi
+                done
+
+                #
+                print_empty_line
+                IFS=${old_ifs}
+            fi
+            ;;
+
+        -sac | --show-all-content)
+            # Display the contents of all directories in all environment variables in ENVUTILS_LIST
+            for env_var in ${ENVUTILS_LIST} ; do
+                # Check if the variable is set
+                list_dirs=$(env | grep "^${env_var}=" 2> /dev/null)
+                list_dirs=${list_dirs#*=}
+                if [ ! -z "${list_dirs}" ] ; then
+                    # Print the environment variable
+                    echo "${env_var}"
+                    for i in $(seq 1 1 ${#env_var}) ; do
+                        echo -n "="
+                    done
+                    print_empty_line
+
+                    # Set the delimiter to :
+                    old_ifs=${IFS}
+                    IFS=:
+
+                    # Visit all directories in $env_var
+                    for dir in ${list_dirs} ; do
+                        if [ -d ${dir} ] ; then
+                            ls --color=auto -d ${dir} 2> /dev/null
+                            ls --color=auto ${dir}
+                        else
+                            echo -n ${dir}
+                            echo -n " -- "
+                            print_red "Warning: this is not a directory"
+                            print_empty_line
+                        fi
+                    done
+
+                    #
+                    print_empty_line
+                    IFS=${old_ifs}
+                fi
+            done
+            ;;
+
+        -f | --find)
+            # Find the symbol in all directories in ENVUTILS_LIST
+            symbol=${2}
+            for env_var in ${ENVUTILS_LIST} ; do
+                # Print the name of env_var if we found the symbol in one of its directories
+                is_first=1
+
+                # Check if the variable is set
+                list_dirs=$(env | grep "^${env_var}=" 2> /dev/null)
+                list_dirs=${list_dirs#*=}
+                if [ ! -z "${list_dirs}" ] ; then
+                    # Set the delimiter to :
+                    old_ifs=${IFS}
+                    IFS=:
+
+                    # Visit all directories in $env_var
+                    for dir in ${list_dirs} ; do
+                        # Check if dir is a directory
+                        if [ -d ${dir} ] ; then
+                            #
+                            found=$(ls ${dir}/${symbol} 2> /dev/null)
+
+                            # Test if we found a symbol
+                            if [ ! -z "${found}" ] ; then
+                                # First
+                                if [ "${is_first}" == "1" ] ; then
+                                    # Store the IFS value on the second restoration variable
+                                    old_old_ifs=${IFS}
+                                    unset IFS
+
+                                    # Print the environment variable
+                                    echo "${env_var}"
+                                    for i in $(seq 1 1 ${#env_var}) ; do
+                                        echo -n "="
+                                    done
+                                    print_empty_line
+
+                                    #
+                                    is_first=0
+
+                                    # Reset IFS with the second restoration variable
+                                    IFS=${old_old_ifs}
+                                fi
+
+                                # Print the finding path
+                                ls --color=auto ${found}
+                            fi
+
+                            # Reset found for the next iteration
+                            found=""
+                        fi
+                    done
+
+                    # Reset the IFS value with the old value
+                    IFS=${old_ifs}
+                fi
+
+                #
+                print_empty_line
+            done
+            ;;
+
+        --clean)
+            # Delete unnecessary colons (:) in ${2}
+            if [ "${#}" -ne "2" ] ; then
+                # clean all envrinment variables in ENVUTILS_LIST
+                for env_var in ${ENVUTILS_LIST} ; do
+                    clean_env ${env_var}
+                done
+            else
+                # clean only ENV_VAR
+                clean_env ${2}
+            fi
+            ;;
+
+        --install)
+            # Install ${2} to standard environment variables
+            to_install=${2}
+
+            # Test if the script is sourced
+            if [ ${0} != "${BASH_SOURCE}" ] ; then
+                # Export variables
+                export PATH=${to_install}/bin:${PATH}
+                export LD_LIBRARY_PATH=${to_install}/lib:${LD_LIBRARY_PATH}
+                export LIBRARY_PATH=${to_install}/lib:${LIBRARY_PATH}
+                export CPATH=${to_install}/include:${CPATH}
+            else
+                print_red "Error: please 'source' this script in the way to set envrinoment variables\n"
+                print_red "Try: source ${0}\n"
+                ENVUTILS_ERROR_CODE=1
+            fi
+            ;;
+
+        --uninstall)
+            # Uninstall ${2} from standard environment variables
+            to_uninstall=${2}
+
+            # Test if the script is sourced
+            if [ ${0} != "${BASH_SOURCE}" ] ; then
+                # Export variables
+                export PATH=$(echo ${PATH} | sed "s+${to_uninstall}/bin++g")
+                export LD_LIBRARY_PATH=$(echo ${LD_LIBRARY_PATH} | sed "s+${to_uninstall}/lib++g")
+                export LIBRARY_PATH=$(echo ${LIBRARY_PATH} | sed "s+${to_uninstall}/lib++g")
+                export CPATH=$(echo ${CPATH} | sed "s+${to_uninstall}/include++g")
+            else
+                print_red "Error: please 'source' this script in the way to set envrinoment variables\n"
+                print_red "Try: source ${0}\n"
+                ENVUTILS_ERROR_CODE=1
+            fi
+            ;;
+
+        *)
+            # Error
+            echo "Unknown option '${1}'"
+            echo "Try 'envutils --help' for more information."
+            ENVUTILS_ERROR_CODE=1
+            ;;
+    esac
+else
+    # Default - Print the PATH of all directories in all environment variables in ENVUTILS_LIST
+    for env_var in ${ENVUTILS_LIST} ; do
+        # Check if the variable is set
+        list_dirs=$(env | grep "^${env_var}=" 2> /dev/null)
+        list_dirs=${list_dirs#*=}
+        if [ ! -z "${list_dirs}" ] ; then
+            # Prevent case ":"
+            if [ "${list_dirs}" != ":" ] ; then
+                # Print the environment variable
+                echo "${env_var}"
+                for i in $(seq 1 1 ${#env_var}) ; do
+                    echo -n "="
+                done
+                print_empty_line
+
+                # Set the delimiter to :
+                old_ifs=${IFS}
+                IFS=:
+
+                # Visit all directories in $env_var
+                for dir in ${list_dirs} ; do
+                    # Prevent case ":path", "path:" and ":path:"
+                    if [ "${dir}" != "" ] ; then
+                        if [ -d ${dir} ] ; then
+                            ls --color=auto -d ${dir} 2> /dev/null
+                        else
+                            echo -n ${dir}
+                            echo -n " -- "
+                            print_red "Warning: this is not a directory"
+                            print_empty_line
+                        fi
+                    fi
+                done
+
+                #
+                print_empty_line
+                IFS=${old_ifs}
+            fi
+        fi
+    done
+fi
+
+# End the program by throwing error code
+if [ "${0}" == "${get_shell}" ] ; then
+    return ${ENVUTILS_ERROR_CODE}
+else
+    exit ${ENVUTILS_ERROR_CODE}
+fi
