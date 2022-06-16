@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 #
 # Copyright 2022 Sholde
@@ -12,6 +12,265 @@
 ENVUTILS_VERSION=0.1.0
 ENVUTILS_LIST="PATH LD_LIBRARY_PATH LIBRARY_PATH CPATH"
 ENVUTILS_ERROR_CODE=0
+ENVUTILS_LIST_OMP="
+    OMP_SCHEDULE
+    OMP_NUM_THREADS
+    OMP_DYNAMIC
+    OMP_PROC_BIND
+    OMP_PLACES
+    OMP_STACKSIZE
+    OMP_WAIT_POLICY
+    OMP_MAX_ACTIVE_LEVELS
+    OMP_NESTED
+    OMP_THREAD_LIMIT
+    OMP_CANCELLATION
+    OMP_DISPLAY_ENV
+    OMP_DISPLAY_AFFINITY
+    OMP_AFFINITY_FORMAT
+    OMP_DEFAULT_DEVICE
+    OMP_MAX_TASK_PRIORITY
+    OMP_TARGET_OFFLOAD
+    OMP_TOOL
+    OMP_TOOL_LIBRARIES
+    OMP_DEBUG
+    OMP_ALLOCATOR
+"
+ENVUTILS_LIST_MPI="
+    MPIEXEC_TIMEOUT
+    MPIEXEC_UNIVERSE_SIZE
+    MPIEXEC_PORT_RANGE
+    MPICH_PORT_RANGE
+    MPIEXEC_PREFIX_DEFAULT
+    MPIEXEC_PREFIX_STDOUT
+    MPIEXEC_PREFIX_STDERR
+"
+ENVUTILS_LIST_INTEL_MPI_COMPILE="
+    I_MPI_CC_PROFILE
+    I_MPI_CXX_PROFILE
+    I_MPI_FC_PROFILE
+    I_MPI_F77_PROFILE
+    I_MPI_F90_PROFILE
+    I_MPI_TRACE_PROFILE
+    I_MPI_CHECK_PROFILE
+    I_MPI_CHECK_COMPILER
+    I_MPI_CC
+    I_MPI_CXX
+    I_MPI_FC
+    I_MPI_F77
+    I_MPI_F90
+    I_MPI_ROOT
+    VT_ROOT
+    I_MPI_COMPILER_CONFIG_DIR
+    I_MPI_LINK
+    I_MPI_DEBUG_INFO_STRIP
+    I_MPI_{C,CXX,FC,F}FLAGS
+    I_MPI_CFLAGS
+    I_MPI_CXXFLAGS
+    I_MPI_FCFLAGS
+    I_MPI_FLAGS
+    I_MPI_LDFLAGS
+    I_MPI_FORT_BIND
+"
+ENVUTILS_LIST_INTEL_MPI_HYDRA="
+    I_MPI_HYDRA_HOST_FILE
+    I_MPI_HYDRA_HOSTS_GROUP
+    I_MPI_HYDRA_DEBUG
+    I_MPI_HYDRA_ENV
+    I_MPI_JOB_TIMEOUT
+    I_MPI_JOB_STARTUP_TIMEOUT
+    I_MPI_JOB_TIMEOUT_SIGNAL
+    I_MPI_JOB_ABORT_SIGNAL
+    I_MPI_JOB_SIGNAL_PROPAGATION
+    I_MPI_HYDRA_BOOTSTRAP
+    I_MPI_HYDRA_BOOTSTRAP_EXEC
+    I_MPI_HYDRA_BOOTSTRAP_EXEC_EXTRA_ARGS
+    I_MPI_HYDRA_BOOTSTRAP_AUTOFORK
+    I_MPI_HYDRA_RMK
+    I_MPI_HYDRA_PMI_CONNECT
+    I_MPI_PERHOST
+    I_MPI_JOB_TRACE_LIBS
+    I_MPI_JOB_CHECK_LIBS
+    I_MPI_HYDRA_BRANCH_COUNT
+    I_MPI_HYDRA_PMI_AGGREGATE
+    I_MPI_HYDRA_GDB_REMOTE_SHELL
+    I_MPI_HYDRA_IFACE
+    I_MPI_HYDRA_DEMUX
+    I_MPI_TMPDIR
+    I_MPI_JOB_RESPECT_PROCESS_PLACEMENT
+    I_MPI_GTOOL
+    I_MPI_HYDRA_TOPOLIB
+    I_MPI_PORT_RANGE
+    I_MPI_SILENT_ABORT
+    I_MPI_HYDRA_NAMESERVER
+"
+ENVUTILS_LIST_INTEL_MPI_ADJUST="
+    I_MPI_ADJUST_ALLGATHER
+    I_MPI_ADJUST_ALLGATHERV
+    I_MPI_ADJUST_ALLREDUCE
+    I_MPI_ADJUST_ALLTOALL
+    I_MPI_ADJUST_ALLTOALLV
+    I_MPI_ADJUST_ALLTOALLW
+    I_MPI_ADJUST_BARRIER
+    I_MPI_ADJUST_BCAST
+    I_MPI_ADJUST_EXSCAN
+    I_MPI_ADJUST_GATHER
+    I_MPI_ADJUST_GATHERV
+    I_MPI_ADJUST_REDUCE_SCATTER
+    I_MPI_ADJUST_REDUCE
+    I_MPI_ADJUST_SCAN
+    I_MPI_ADJUST_SCATTER
+    I_MPI_ADJUST_SCATTERV
+    I_MPI_ADJUST_SENDRECV_REPLACE
+    I_MPI_ADJUST_IALLGATHER
+    I_MPI_ADJUST_IALLGATHERV
+    I_MPI_ADJUST_IALLREDUCE
+    I_MPI_ADJUST_IALLTOALL
+    I_MPI_ADJUST_IALLTOALLV
+    I_MPI_ADJUST_IALLTOALLW
+    I_MPI_ADJUST_BARRIER
+    I_MPI_ADJUST_IBCAST
+    I_MPI_ADJUST_IEXSCAN
+    I_MPI_ADJUST_IGATHER
+    I_MPI_ADJUST_IGATHERV
+    I_MPI_ADJUST_IREDUCE_SCATTER
+    I_MPI_ADJUST_IREDUCE
+    I_MPI_ADJUST_ISCAN
+    I_MPI_ADJUST_ISCATTER
+    I_MPI_ADJUST_ISCATTERV
+    I_MPI_ADJUST_ALLGATHER_LIST
+    I_MPI_ADJUST_ALLGATHERV_LIST
+    I_MPI_ADJUST_ALLREDUCE_LIST
+    I_MPI_ADJUST_ALLTOALL_LIST
+    I_MPI_ADJUST_ALLTOALLV_LIST
+    I_MPI_ADJUST_ALLTOALLW_LIST
+    I_MPI_ADJUST_BARRIER_LIST
+    I_MPI_ADJUST_BCAST_LIST
+    I_MPI_ADJUST_EXSCAN_LIST
+    I_MPI_ADJUST_GATHER_LIST
+    I_MPI_ADJUST_GATHERV_LIST
+    I_MPI_ADJUST_REDUCE_SCATTER_LIST
+    I_MPI_ADJUST_REDUCE_LIST
+    I_MPI_ADJUST_SCAN_LIST
+    I_MPI_ADJUST_SCATTER_LIST
+    I_MPI_ADJUST_SCATTERV_LIST
+    I_MPI_ADJUST_SENDRECV_REPLACE_LIST
+    I_MPI_ADJUST_IALLGATHER_LIST
+    I_MPI_ADJUST_IALLGATHERV_LIST
+    I_MPI_ADJUST_IALLREDUCE_LIST
+    I_MPI_ADJUST_IALLTOALL_LIST
+    I_MPI_ADJUST_IALLTOALLV_LIST
+    I_MPI_ADJUST_IALLTOALLW_LIST
+    I_MPI_ADJUST_BARRIER_LIST
+    I_MPI_ADJUST_IBCAST_LIST
+    I_MPI_ADJUST_IEXSCAN_LIST
+    I_MPI_ADJUST_IGATHER_LIST
+    I_MPI_ADJUST_IGATHERV_LIST
+    I_MPI_ADJUST_IREDUCE_SCATTER_LIST
+    I_MPI_ADJUST_IREDUCE_LIST
+    I_MPI_ADJUST_ISCAN_LIST
+    I_MPI_ADJUST_ISCATTER_LIST
+    I_MPI_ADJUST_ISCATTERV_LIST
+    I_MPI_COLL_INTRANODE
+    I_MPI_COLL_INTRANODE_SHM_THRESHOLD
+    I_MPI_COLL_EXTERNAL
+    I_MPI_COLL_DIRECT
+    I_MPI_CBWR
+"
+ENVUTILS_LIST_INTEL_MPI_TUNING="
+    I_MPI_TUNING_MODE
+    I_MPI_TUNING_BIN
+    I_MPI_TUNING_BIN_DUMP
+    I_MPI_TUNING
+    I_MPI_TUNING_AUTO_STORAGE_SIZE
+    I_MPI_TUNING_AUTO_ITER_NUM
+    I_MPI_TUNING_AUTO_WARMUP_ITER_NUM
+    I_MPI_TUNING_AUTO_SYNC
+    I_MPI_TUNING_AUTO_COMM_LIST
+    I_MPI_TUNING_AUTO_COMM_DEFAULT
+    I_MPI_TUNING_AUTO_COMM_USER
+    I_MPI_TUNING_AUTO_ITER_POLICY
+    I_MPI_TUNING_AUTO_ITER_POLICY_THRESHOLD
+    I_MPI_TUNING_AUTO_POLICY
+"
+ENVUTILS_LIST_INTEL_MPI_PINNING="
+    I_MPI_PIN
+    I_MPI_PIN_RESPECT_CPUSET
+    I_MPI_PIN_RESPECT_HCA
+    I_MPI_PIN_CELL
+    I_MPI_PIN_DOMAIN
+    I_MPI_PIN_ORDER
+"
+ENVUTILS_LIST_INTEL_MPI_GPU="
+    I_MPI_OFFLOAD
+    I_MPI_OFFLOAD_LEVEL_ZERO_LIBRARY
+"
+ENVUTILS_LIST_INTEL_MPI_FABRICS="
+    I_MPI_FABRICS
+    I_MPI_SHM
+    I_MPI_SHM_CELL_FWD_SIZE
+    I_MPI_SHM_CELL_BWD_SIZE
+    I_MPI_SHM_CELL_EXT_SIZE
+    I_MPI_SHM_CELL_FWD_NUM
+    I_MPI_SHM_CELL_BWD_NUM
+    I_MPI_SHM_CELL_EXT_NUM_TOTAL
+    I_MPI_SHM_CELL_FWD_HOLD_NUM
+    I_MPI_SHM_MCDRAM_LIMIT
+    I_MPI_SHM_SEND_SPIN_COUNT
+    I_MPI_SHM_RECV_SPIN_COUNT
+    I_MPI_SHM_FILE_PREFIX_4K
+    I_MPI_SHM_FILE_PREFIX_2M
+    I_MPI_SHM_FILE_PREFIX_1G
+    I_MPI_OFI_PROVIDER
+    I_MPI_OFI_PROVIDER_DUMP
+    I_MPI_OFI_DRECV
+    I_MPI_OFI_LIBRARY_INTERNAL
+    I_MPI_OFI_TAG_DYNAMIC
+"
+ENVUTILS_LIST_INTEL_MPI_MEM_POLICY_CONTROL="
+    I_MPI_HBW_POLICY
+    I_MPI_BIND_NUMA
+    I_MPI_BIND_ORDER
+    I_MPI_BIND_WIN_ALLOCATE
+"
+ENVUTILS_LIST_INTEL_MPI_ASYNC_PROGRESS="
+    I_MPI_ASYNC_PROGRESS
+    I_MPI_ASYNC_PROGRESS_THREADS
+    I_MPI_ASYNC_PROGRESS_PIN
+    I_MPI_ASYNC_PROGRESS_ID_KEY
+"
+ENVUTILS_LIST_INTEL_MPI_MULTI_EP="
+    I_MPI_THREAD_SPLIT
+    I_MPI_THREAD_RUNTIME
+    I_MPI_THREAD_MAX
+    I_MPI_THREAD_ID_KEY
+"
+ENVUTILS_LIST_INTEL_MPI_OTHERS="
+    I_MPI_DEBUG
+    I_MPI_DEBUG_OUTPUT
+    I_MPI_DEBUG_COREDUMP
+    I_MPI_STATS
+    I_MPI_STARTUP_MODE
+    I_MPI_PMI_LIBRARY
+    I_MPI_PMI_VALUE_LENGTH_MAX
+    I_MPI_OUTPUT_CHUNK_SIZE
+    I_MPI_REMOVED_VAR_WARNING
+    I_MPI_VAR_CHECK_SPELLING
+    I_MPI_LIBRARY_KIND
+    I_MPI_PLATFORM
+    I_MPI_MALLOC
+    I_MPI_SHM_HEAP
+    I_MPI_SHM_HEAP_VSIZE
+    I_MPI_SHM_HEAP_CSIZE
+    I_MPI_SHM_HEAP_OPT
+    I_MPI_WAIT_MODE
+    I_MPI_THREAD_YIELD
+    I_MPI_PAUSE_COUNT
+    I_MPI_SPIN_COUNT
+    I_MPI_THREAD_SLEEP
+    I_MPI_EXTRA_FILESYSTEM
+    I_MPI_EXTRA_FILESYSTEM_FORCE
+    I_MPI_MULTIRAIL
+"
 
 ###
 # helpers
@@ -81,6 +340,9 @@ if [ "${#}" -ne "0" ] ; then
             echo "    -c, --clean [ENV_VAR]         Delete unnecessary colons (:) in ENV_VAR"
             echo "    --install PATH                Install PATH to standard environment variables"
             echo "    --uninstall PATH              Uninstall PATH from standard environment variables"
+            echo "    --omp                         Display the content of all OpenMP environment variables"
+            echo "    --mpi                         Display the content of all MPI environment variables (not really supported)"
+            echo "    --intel-mpi                   Display the content of all Intel MPI environment variables"
             echo ""
             echo "NOTE: variables surrounded by brackets [] are optional."
             ;;
@@ -158,10 +420,10 @@ if [ "${#}" -ne "0" ] ; then
                         print_red "Warning: this is not a directory"
                         print_empty_line
                     fi
+                    print_empty_line
                 done
 
                 #
-                print_empty_line
                 IFS=${old_ifs}
             fi
             ;;
@@ -195,10 +457,10 @@ if [ "${#}" -ne "0" ] ; then
                             print_red "Warning: this is not a directory"
                             print_empty_line
                         fi
+                        print_empty_line
                     done
 
                     #
-                    print_empty_line
                     IFS=${old_ifs}
                 fi
             done
@@ -313,6 +575,228 @@ if [ "${#}" -ne "0" ] ; then
                 print_red "Try: source ${0}\n"
                 ENVUTILS_ERROR_CODE=1
             fi
+            ;;
+
+        --omp)
+            # Display the content of all OpenMP environment variables
+            for omp_env_var in ${ENVUTILS_LIST_OMP} ; do
+                get_line=$(env | grep "^${omp_env_var}=" 2> /dev/null)
+                if [ ! -z "${get_line}" ] ; then
+                    echo ${get_line}
+                fi
+            done
+            ;;
+
+        --mpi)
+            # Display the content of all MPI environment variables (not really supported)
+            for mpi_env_var in ${ENVUTILS_LIST_MPI} ; do
+                get_line=$(env | grep "^${mpi_env_var}=" 2> /dev/null)
+                if [ ! -z "${get_line}" ] ; then
+                    echo ${get_line}
+                fi
+            done
+            ;;
+
+        --intel-mpi)
+            # Display the content of all Intel MPI environment variables
+
+            # Compilation
+            name_section="Compilation"
+            is_first=1
+            for mpi_env_var in ${ENVUTILS_LIST_INTEL_MPI_COMPILE} ; do
+                get_line=$(env | grep "^${mpi_env_var}=" 2> /dev/null)
+                if [ ! -z "${get_line}" ] ; then
+                    if [ "${is_first}" == "1" ] ; then
+                        echo ${name_section}
+                        for i in $(seq 1 1 ${#name_section}) ; do
+                            echo -n "="
+                        done
+                        print_empty_line
+                        is_first=0
+                    fi
+                    echo ${get_line}
+                fi
+            done
+
+            # Hydra
+            name_section="Hydra"
+            is_first=1
+            for mpi_env_var in ${ENVUTILS_LIST_INTEL_MPI_HYDRA} ; do
+                get_line=$(env | grep "^${mpi_env_var}=" 2> /dev/null)
+                if [ ! -z "${get_line}" ] ; then
+                    if [ "${is_first}" == "1" ] ; then
+                        echo ${name_section}
+                        for i in $(seq 1 1 ${#name_section}) ; do
+                            echo -n "="
+                        done
+                        print_empty_line
+                        is_first=0
+                    fi
+                    echo ${get_line}
+                fi
+            done
+
+            # Adjust
+            name_section="Adjust"
+            is_first=1
+            for mpi_env_var in ${ENVUTILS_LIST_INTEL_MPI_ADJUST} ; do
+                get_line=$(env | grep "^${mpi_env_var}=" 2> /dev/null)
+                if [ ! -z "${get_line}" ] ; then
+                    if [ "${is_first}" == "1" ] ; then
+                        echo ${name_section}
+                        for i in $(seq 1 1 ${#name_section}) ; do
+                            echo -n "="
+                        done
+                        print_empty_line
+                        is_first=0
+                    fi
+                    echo ${get_line}
+                fi
+            done
+
+            # Tunning
+            name_section="Tunning"
+            is_first=1
+            for mpi_env_var in ${ENVUTILS_LIST_INTEL_MPI_TUNING} ; do
+                get_line=$(env | grep "^${mpi_env_var}=" 2> /dev/null)
+                if [ ! -z "${get_line}" ] ; then
+                    if [ "${is_first}" == "1" ] ; then
+                        echo ${name_section}
+                        for i in $(seq 1 1 ${#name_section}) ; do
+                            echo -n "="
+                        done
+                        print_empty_line
+                        is_first=0
+                    fi
+                    echo ${get_line}
+                fi
+            done
+
+            # Pinning
+            name_section="Pinning"
+            is_first=1
+            for mpi_env_var in ${ENVUTILS_LIST_INTEL_MPI_PINNING} ; do
+                get_line=$(env | grep "^${mpi_env_var}=" 2> /dev/null)
+                if [ ! -z "${get_line}" ] ; then
+                    if [ "${is_first}" == "1" ] ; then
+                        echo ${name_section}
+                        for i in $(seq 1 1 ${#name_section}) ; do
+                            echo -n "="
+                        done
+                        print_empty_line
+                        is_first=0
+                    fi
+                    echo ${get_line}
+                fi
+            done
+
+            # GPU
+            name_section="GPU"
+            is_first=1
+            for mpi_env_var in ${ENVUTILS_LIST_INTEL_MPI_GPU} ; do
+                get_line=$(env | grep "^${mpi_env_var}=" 2> /dev/null)
+                if [ ! -z "${get_line}" ] ; then
+                    if [ "${is_first}" == "1" ] ; then
+                        echo ${name_section}
+                        for i in $(seq 1 1 ${#name_section}) ; do
+                            echo -n "="
+                        done
+                        print_empty_line
+                        is_first=0
+                    fi
+                    echo ${get_line}
+                fi
+            done
+
+            # Fabrics
+            name_section="Fabrics"
+            is_first=1
+            for mpi_env_var in ${ENVUTILS_LIST_INTEL_MPI_FABRICS} ; do
+                get_line=$(env | grep "^${mpi_env_var}=" 2> /dev/null)
+                if [ ! -z "${get_line}" ] ; then
+                    if [ "${is_first}" == "1" ] ; then
+                        echo ${name_section}
+                        for i in $(seq 1 1 ${#name_section}) ; do
+                            echo -n "="
+                        done
+                        print_empty_line
+                        is_first=0
+                    fi
+                    echo ${get_line}
+                fi
+            done
+
+            # Memory Policy Control
+            name_section="Memory Policy Control"
+            is_first=1
+            for mpi_env_var in ${ENVUTILS_LIST_INTEL_MPI_MEM_POLICY_CONTROL} ; do
+                get_line=$(env | grep "^${mpi_env_var}=" 2> /dev/null)
+                if [ ! -z "${get_line}" ] ; then
+                    if [ "${is_first}" == "1" ] ; then
+                        echo ${name_section}
+                        for i in $(seq 1 1 ${#name_section}) ; do
+                            echo -n "="
+                        done
+                        print_empty_line
+                        is_first=0
+                    fi
+                    echo ${get_line}
+                fi
+            done
+
+            # Asynchronous Progress Control
+            name_section="Asynchronous Progress Control"
+            is_first=1
+            for mpi_env_var in ${ENVUTILS_LIST_INTEL_MPI_ASYNC_PROGRESS} ; do
+                get_line=$(env | grep "^${mpi_env_var}=" 2> /dev/null)
+                if [ ! -z "${get_line}" ] ; then
+                    if [ "${is_first}" == "1" ] ; then
+                        echo ${name_section}
+                        for i in $(seq 1 1 ${#name_section}) ; do
+                            echo -n "="
+                        done
+                        print_empty_line
+                        is_first=0
+                    fi
+                    echo ${get_line}
+                fi
+            done
+
+            # Multi-EP
+            name_section="Multi-EP"
+            is_first=1
+            for mpi_env_var in ${ENVUTILS_LIST_INTEL_MPI_MULTI_EP} ; do
+                get_line=$(env | grep "^${mpi_env_var}=" 2> /dev/null)
+                if [ ! -z "${get_line}" ] ; then
+                    if [ "${is_first}" == "1" ] ; then
+                        echo ${name_section}
+                        for i in $(seq 1 1 ${#name_section}) ; do
+                            echo -n "="
+                        done
+                        print_empty_line
+                        is_first=0
+                    fi
+                    echo ${get_line}
+                fi
+            done
+
+            # Others
+            name_section="Others"
+            is_first=1
+            for mpi_env_var in ${ENVUTILS_LIST_INTEL_MPI_OTHERS} ; do
+                get_line=$(env | grep "^${mpi_env_var}=" 2> /dev/null)
+                if [ ! -z "${get_line}" ] ; then
+                    if [ "${is_first}" == "1" ] ; then
+                        echo ${name_section}
+                        for i in $(seq 1 1 ${#name_section}) ; do
+                            echo -n "="
+                        done
+                        print_empty_line
+                        is_first=0
+                    fi
+                    echo ${get_line}
+                fi
+            done
             ;;
 
         *)

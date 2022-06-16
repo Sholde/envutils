@@ -37,8 +37,11 @@ Options:
                                   variables in ENVUTILS_LIST
     -f, --find SYMBOL             Find the symbol SYMBOL in all directories in ENVUTILS_LIST
     -c, --clean [ENV_VAR]         Delete unnecessary colons (:) in ENV_VAR
-    --install PATH                Install PATH to standart environment variables
-    --uninstall PATH              Uninstall PATH from standart environment variables
+    --install PATH                Install PATH to standard environment variables
+    --uninstall PATH              Uninstall PATH from standard environment variables
+    --omp                         Display the content of all OpenMP environment variables
+    --mpi                         Display the content of all MPI environment variables (not really supported)
+    --intel-mpi                   Display the content of all Intel MPI environment variables
 
 NOTE: variables surrounded by brackets [] are optional.
   #+end_src
