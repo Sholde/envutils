@@ -9,9 +9,11 @@
 ###
 # envutils variables
 ###
-ENVUTILS_VERSION=0.2.0
+ENVUTILS_VERSION=0.3.0
 ENVUTILS_LIST="PATH LD_LIBRARY_PATH LIBRARY_PATH CPATH"
 ENVUTILS_ERROR_CODE=0
+
+# omp
 ENVUTILS_LIST_OMP=(
     "OMP_SCHEDULE"
     "OMP_NUM_THREADS"
@@ -35,6 +37,8 @@ ENVUTILS_LIST_OMP=(
     "OMP_DEBUG"
     "OMP_ALLOCATOR"
 )
+
+# mpi
 ENVUTILS_LIST_MPI=(
     "MPIEXEC_TIMEOUT"
     "MPIEXEC_UNIVERSE_SIZE"
@@ -44,6 +48,8 @@ ENVUTILS_LIST_MPI=(
     "MPIEXEC_PREFIX_STDOUT"
     "MPIEXEC_PREFIX_STDERR"
 )
+
+# intel mpi
 ENVUTILS_LIST_INTEL_MPI_COMPILE=(
     "I_MPI_CC_PROFILE"
     "I_MPI_CXX_PROFILE"
@@ -63,7 +69,6 @@ ENVUTILS_LIST_INTEL_MPI_COMPILE=(
     "I_MPI_COMPILER_CONFIG_DIR"
     "I_MPI_LINK"
     "I_MPI_DEBUG_INFO_STRIP"
-    "I_MPI_{C,CXX,FC,F}FLAGS"
     "I_MPI_CFLAGS"
     "I_MPI_CXXFLAGS"
     "I_MPI_FCFLAGS"
@@ -272,6 +277,35 @@ ENVUTILS_LIST_INTEL_MPI_OTHERS=(
     "I_MPI_MULTIRAIL"
 )
 
+# pocl
+ENVUTILS_LIST_POCL=(
+    "POCL_AFFINITY"
+    "POCL_BUILDING"
+    "POCL_CACHE_DIR"
+    "POCL_DEBUG"
+    "POCL_DEBUG_LLVM_PASSES"
+    "POCL_DEVICES"
+    "POCL_BASIC_PARAMETERS"
+    "POCL_PTHREAD_PARAMETERS"
+    "POCL_TTASIM_PARAMETERS"
+    "POCL_TTASIM0_PARAMETERS"
+    "POCL_TTASIM1_PARAMETERS"
+    "POCL_HSA_PARAMETERS"
+    "POCL_EXTRA_BUILD_FLAGS"
+    "POCL_IMPLICIT_FINISH"
+    "POCL_KERNEL_CACHE"
+    "POCL_LEAVE_KERNEL_COMPILER_TEMP_FILES"
+    "POCL_MAX_PTHREAD_COUNT"
+    "POCL_MAX_WORK_GROUP_SIZE"
+    "POCL_MEMORY_LIMIT"
+    "POCL_OFFLINE_COMPILE"
+    "POCL_VECTORIZER_REMARKS"
+    "POCL_WORK_GROUP_METHOD"
+    "POCL_SIGFPE_HANDLER"
+    "POCL_TRACE_EVENT"
+    "POCL_TRACE_EVENT_OPT POCL_TRACE_EVENT_FILTER"
+)
+
 ###
 # helpers
 ###
@@ -281,10 +315,18 @@ print_empty_line() {
     echo ""
 }
 
-# Print ${1} in red if this script prints on stdout and the terminal uses colors
+# Print ${1} in color if this script prints on stdout and the terminal uses colors
 print_red() {
     if [ -t 1 ] && [ "${COLORTERM}" == "truecolor" ] ; then
         echo -ne "\033[1;31m${1}\033[0m"
+    else # run on pipe
+        echo -n ${1}
+    fi
+}
+
+print_green() {
+    if [ -t 1 ] && [ "${COLORTERM}" == "truecolor" ] ; then
+        echo -ne "\033[1;32m${1}\033[0m"
     else # run on pipe
         echo -n ${1}
     fi
@@ -331,7 +373,9 @@ if [ "${#}" -ne "0" ] ; then
             echo "Options:"
             echo "    -v, --version                 Display the version"
             echo "    -h, --help                    Display this help"
-            echo "    -l, --list                    Display the list of environment variables handled by envutils"
+            echo "    -l, --list [ENV_VAR]          Display the list of standard environment variables handled by envutils "
+            echo "                                  if ENV_VAR is not specified, else display the list of environment "
+            echo "                                  variables of following packages: omp, mpi, impi, pocl"
             echo "    -s, --show ENV_VAR            Display the content of ENV_VAR environment variable"
             echo "    -sc, --show-content ENV_VAR   Display the content of all directories in ENV_VAR environment variable"
             echo "    -sac, --show-all-content      Display the contents of all directories in all environment "
@@ -343,16 +387,278 @@ if [ "${#}" -ne "0" ] ; then
             echo "    --omp                         Display the content of all OpenMP environment variables"
             echo "    --mpi                         Display the content of all MPI environment variables (not really supported)"
             echo "    --intel-mpi                   Display the content of all Intel MPI environment variables"
+            echo "    --pocl                        Display the content of all POCL environment variables"
             echo ""
             echo "NOTE: variables surrounded by brackets [] are optional."
             ;;
 
         -l | --list)
             # Display the list of environment variables handled by envutils
-            echo "List of environment variables that envutils handle:"
-            for env_var in ${ENVUTILS_LIST} ; do
-                echo "    ${env_var}"
-            done
+            if [ -z "${2}" ] ; then
+                for env_var in ${ENVUTILS_LIST} ; do
+                    echo "${env_var}"
+                done
+            else
+                if [ ${2} == "omp" ] ; then
+                    for env_var in ${ENVUTILS_LIST_OMP[@]} ; do
+                        get_value=$(env | grep "^${env_var}=" 2> /dev/null)
+                        get_value=${get_value#*=}
+                        if [ -z "${get_value}" ] ; then
+                            print_red ${env_var}
+                            print_empty_line
+                        else
+                            print_green ${env_var}
+                            print_empty_line
+                        fi
+                    done
+                elif [ "${2}" == "mpi" ] ; then
+                    for env_var in ${ENVUTILS_LIST_MPI[@]} ; do
+                        get_value=$(env | grep "^${env_var}=" 2> /dev/null)
+                        get_value=${get_value#*=}
+                        if [ -z "${get_value}" ] ; then
+                            print_red ${env_var}
+                            print_empty_line
+                        else
+                            print_green ${env_var}
+                            print_empty_line
+                        fi
+                    done
+                elif [ "${2}" == "impi" ] || [ "${2}" == "intel-mpi" ] ; then
+                    # Compilation
+                    name_section="Compilation"
+                    echo ${name_section}
+                    for i in $(seq 1 1 ${#name_section}) ; do
+                        echo -n "="
+                    done
+                    print_empty_line
+                    for env_var in ${ENVUTILS_LIST_INTEL_MPI_COMPILE[@]} ; do
+                        get_value=$(env | grep "^${env_var}=" 2> /dev/null)
+                        get_value=${get_value#*=}
+                        if [ -z "${get_value}" ] ; then
+                            print_red ${env_var}
+                            print_empty_line
+                        else
+                            print_green ${env_var}
+                            print_empty_line
+                        fi
+                    done
+                    print_empty_line
+
+                    # Hydra
+                    name_section="Hydra"
+                    echo ${name_section}
+                    for i in $(seq 1 1 ${#name_section}) ; do
+                        echo -n "="
+                    done
+                    print_empty_line
+                    for env_var in ${ENVUTILS_LIST_INTEL_MPI_HYDRA[@]} ; do
+                        get_value=$(env | grep "^${env_var}=" 2> /dev/null)
+                        get_value=${get_value#*=}
+                        if [ -z "${get_value}" ] ; then
+                            print_red ${env_var}
+                            print_empty_line
+                        else
+                            print_green ${env_var}
+                            print_empty_line
+                        fi
+                    done
+                    print_empty_line
+
+                    # Adjust
+                    name_section="Adjust"
+                    echo ${name_section}
+                    for i in $(seq 1 1 ${#name_section}) ; do
+                        echo -n "="
+                    done
+                    print_empty_line
+                    for env_var in ${ENVUTILS_LIST_INTEL_MPI_ADJUST[@]} ; do
+                        get_value=$(env | grep "^${env_var}=" 2> /dev/null)
+                        get_value=${get_value#*=}
+                        if [ -z "${get_value}" ] ; then
+                            print_red ${env_var}
+                            print_empty_line
+                        else
+                            print_green ${env_var}
+                            print_empty_line
+                        fi
+                    done
+                    print_empty_line
+
+                    # Tuning
+                    name_section="Tuning"
+                    echo ${name_section}
+                    for i in $(seq 1 1 ${#name_section}) ; do
+                        echo -n "="
+                    done
+                    print_empty_line
+                    for env_var in ${ENVUTILS_LIST_INTEL_MPI_TUNING[@]} ; do
+                        get_value=$(env | grep "^${env_var}=" 2> /dev/null)
+                        get_value=${get_value#*=}
+                        if [ -z "${get_value}" ] ; then
+                            print_red ${env_var}
+                            print_empty_line
+                        else
+                            print_green ${env_var}
+                            print_empty_line
+                        fi
+                    done
+                    print_empty_line
+
+                    # Pinning
+                    name_section="Pinning"
+                    echo ${name_section}
+                    for i in $(seq 1 1 ${#name_section}) ; do
+                        echo -n "="
+                    done
+                    print_empty_line
+                    for env_var in ${ENVUTILS_LIST_INTEL_MPI_PINNING[@]} ; do
+                        get_value=$(env | grep "^${env_var}=" 2> /dev/null)
+                        get_value=${get_value#*=}
+                        if [ -z "${get_value}" ] ; then
+                            print_red ${env_var}
+                            print_empty_line
+                        else
+                            print_green ${env_var}
+                            print_empty_line
+                        fi
+                    done
+                    print_empty_line
+
+                    # Gpu
+                    name_section="Gpu"
+                    echo ${name_section}
+                    for i in $(seq 1 1 ${#name_section}) ; do
+                        echo -n "="
+                    done
+                    print_empty_line
+                    for env_var in ${ENVUTILS_LIST_INTEL_MPI_GPU[@]} ; do
+                        get_value=$(env | grep "^${env_var}=" 2> /dev/null)
+                        get_value=${get_value#*=}
+                        if [ -z "${get_value}" ] ; then
+                            print_red ${env_var}
+                            print_empty_line
+                        else
+                            print_green ${env_var}
+                            print_empty_line
+                        fi
+                    done
+                    print_empty_line
+
+                    # Fabrics
+                    name_section="Fabrics"
+                    echo ${name_section}
+                    for i in $(seq 1 1 ${#name_section}) ; do
+                        echo -n "="
+                    done
+                    print_empty_line
+                    for env_var in ${ENVUTILS_LIST_INTEL_MPI_FABRICS[@]} ; do
+                        get_value=$(env | grep "^${env_var}=" 2> /dev/null)
+                        get_value=${get_value#*=}
+                        if [ -z "${get_value}" ] ; then
+                            print_red ${env_var}
+                            print_empty_line
+                        else
+                            print_green ${env_var}
+                            print_empty_line
+                        fi
+                    done
+                    print_empty_line
+
+                    # Memory Policy Control
+                    name_section="Memory Policy Control"
+                    echo ${name_section}
+                    for i in $(seq 1 1 ${#name_section}) ; do
+                        echo -n "="
+                    done
+                    print_empty_line
+                    for env_var in ${ENVUTILS_LIST_INTEL_MPI_MEM_POLICY_CONTROL[@]} ; do
+                        get_value=$(env | grep "^${env_var}=" 2> /dev/null)
+                        get_value=${get_value#*=}
+                        if [ -z "${get_value}" ] ; then
+                            print_red ${env_var}
+                            print_empty_line
+                        else
+                            print_green ${env_var}
+                            print_empty_line
+                        fi
+                    done
+                    print_empty_line
+
+                    # Asynchronous Progress Control
+                    name_section="Asynchronous Progress Control"
+                    echo ${name_section}
+                    for i in $(seq 1 1 ${#name_section}) ; do
+                        echo -n "="
+                    done
+                    print_empty_line
+                    for env_var in ${ENVUTILS_LIST_INTEL_MPI_ASYNC_PROGRESS[@]} ; do
+                        get_value=$(env | grep "^${env_var}=" 2> /dev/null)
+                        get_value=${get_value#*=}
+                        if [ -z "${get_value}" ] ; then
+                            print_red ${env_var}
+                            print_empty_line
+                        else
+                            print_green ${env_var}
+                            print_empty_line
+                        fi
+                    done
+                    print_empty_line
+
+                    # Multi-Ep
+                    name_section="Multi-EP"
+                    echo ${name_section}
+                    for i in $(seq 1 1 ${#name_section}) ; do
+                        echo -n "="
+                    done
+                    print_empty_line
+                    for env_var in ${ENVUTILS_LIST_INTEL_MPI_MULTI_EP[@]} ; do
+                        get_value=$(env | grep "^${env_var}=" 2> /dev/null)
+                        get_value=${get_value#*=}
+                        if [ -z "${get_value}" ] ; then
+                            print_red ${env_var}
+                            print_empty_line
+                        else
+                            print_green ${env_var}
+                            print_empty_line
+                        fi
+                    done
+                    print_empty_line
+
+                    # Others
+                    name_section="Others"
+                    echo ${name_section}
+                    for i in $(seq 1 1 ${#name_section}) ; do
+                        echo -n "="
+                    done
+                    print_empty_line
+                    for env_var in ${ENVUTILS_LIST_INTEL_MPI_OTHERS[@]} ; do
+                        get_value=$(env | grep "^${env_var}=" 2> /dev/null)
+                        get_value=${get_value#*=}
+                        if [ -z "${get_value}" ] ; then
+                            print_red ${env_var}
+                            print_empty_line
+                        else
+                            print_green ${env_var}
+                            print_empty_line
+                        fi
+                    done
+                    print_empty_line
+                elif [ "${2}" == "pocl" ] ; then
+                    for env_var in ${ENVUTILS_LIST_POCL[@]} ; do
+                        get_value=$(env | grep "^${env_var}=" 2> /dev/null)
+                        get_value=${get_value#*=}
+                        if [ -z "${get_value}" ] ; then
+                            print_red ${env_var}
+                            print_empty_line
+                        else
+                            print_green ${env_var}
+                            print_empty_line
+                        fi
+                    done
+                else
+                    ENVUTILS_ERROR_CODE=1
+                fi
+            fi
             ;;
 
         -s | --show)
@@ -579,7 +885,7 @@ if [ "${#}" -ne "0" ] ; then
 
         --omp)
             # Display the content of all OpenMP environment variables
-            for omp_env_var in ${ENVUTILS_LIST_OMP} ; do
+            for omp_env_var in ${ENVUTILS_LIST_OMP[@]} ; do
                 get_line=$(env | grep "^${omp_env_var}=" 2> /dev/null)
                 if [ ! -z "${get_line}" ] ; then
                     echo ${get_line}
@@ -589,7 +895,7 @@ if [ "${#}" -ne "0" ] ; then
 
         --mpi)
             # Display the content of all MPI environment variables (not really supported)
-            for mpi_env_var in ${ENVUTILS_LIST_MPI} ; do
+            for mpi_env_var in ${ENVUTILS_LIST_MPI[@]} ; do
                 get_line=$(env | grep "^${mpi_env_var}=" 2> /dev/null)
                 if [ ! -z "${get_line}" ] ; then
                     echo ${get_line}
@@ -603,7 +909,7 @@ if [ "${#}" -ne "0" ] ; then
             # Compilation
             name_section="Compilation"
             is_first=1
-            for mpi_env_var in ${ENVUTILS_LIST_INTEL_MPI_COMPILE} ; do
+            for mpi_env_var in ${ENVUTILS_LIST_INTEL_MPI_COMPILE[@]} ; do
                 get_line=$(env | grep "^${mpi_env_var}=" 2> /dev/null)
                 if [ ! -z "${get_line}" ] ; then
                     if [ "${is_first}" == "1" ] ; then
@@ -621,7 +927,7 @@ if [ "${#}" -ne "0" ] ; then
             # Hydra
             name_section="Hydra"
             is_first=1
-            for mpi_env_var in ${ENVUTILS_LIST_INTEL_MPI_HYDRA} ; do
+            for mpi_env_var in ${ENVUTILS_LIST_INTEL_MPI_HYDRA[@]} ; do
                 get_line=$(env | grep "^${mpi_env_var}=" 2> /dev/null)
                 if [ ! -z "${get_line}" ] ; then
                     if [ "${is_first}" == "1" ] ; then
@@ -639,7 +945,7 @@ if [ "${#}" -ne "0" ] ; then
             # Adjust
             name_section="Adjust"
             is_first=1
-            for mpi_env_var in ${ENVUTILS_LIST_INTEL_MPI_ADJUST} ; do
+            for mpi_env_var in ${ENVUTILS_LIST_INTEL_MPI_ADJUST[@]} ; do
                 get_line=$(env | grep "^${mpi_env_var}=" 2> /dev/null)
                 if [ ! -z "${get_line}" ] ; then
                     if [ "${is_first}" == "1" ] ; then
@@ -657,7 +963,7 @@ if [ "${#}" -ne "0" ] ; then
             # Tunning
             name_section="Tunning"
             is_first=1
-            for mpi_env_var in ${ENVUTILS_LIST_INTEL_MPI_TUNING} ; do
+            for mpi_env_var in ${ENVUTILS_LIST_INTEL_MPI_TUNING[@]} ; do
                 get_line=$(env | grep "^${mpi_env_var}=" 2> /dev/null)
                 if [ ! -z "${get_line}" ] ; then
                     if [ "${is_first}" == "1" ] ; then
@@ -675,7 +981,7 @@ if [ "${#}" -ne "0" ] ; then
             # Pinning
             name_section="Pinning"
             is_first=1
-            for mpi_env_var in ${ENVUTILS_LIST_INTEL_MPI_PINNING} ; do
+            for mpi_env_var in ${ENVUTILS_LIST_INTEL_MPI_PINNING[@]} ; do
                 get_line=$(env | grep "^${mpi_env_var}=" 2> /dev/null)
                 if [ ! -z "${get_line}" ] ; then
                     if [ "${is_first}" == "1" ] ; then
@@ -693,7 +999,7 @@ if [ "${#}" -ne "0" ] ; then
             # GPU
             name_section="GPU"
             is_first=1
-            for mpi_env_var in ${ENVUTILS_LIST_INTEL_MPI_GPU} ; do
+            for mpi_env_var in ${ENVUTILS_LIST_INTEL_MPI_GPU[@]} ; do
                 get_line=$(env | grep "^${mpi_env_var}=" 2> /dev/null)
                 if [ ! -z "${get_line}" ] ; then
                     if [ "${is_first}" == "1" ] ; then
@@ -711,7 +1017,7 @@ if [ "${#}" -ne "0" ] ; then
             # Fabrics
             name_section="Fabrics"
             is_first=1
-            for mpi_env_var in ${ENVUTILS_LIST_INTEL_MPI_FABRICS} ; do
+            for mpi_env_var in ${ENVUTILS_LIST_INTEL_MPI_FABRICS[@]} ; do
                 get_line=$(env | grep "^${mpi_env_var}=" 2> /dev/null)
                 if [ ! -z "${get_line}" ] ; then
                     if [ "${is_first}" == "1" ] ; then
@@ -729,7 +1035,7 @@ if [ "${#}" -ne "0" ] ; then
             # Memory Policy Control
             name_section="Memory Policy Control"
             is_first=1
-            for mpi_env_var in ${ENVUTILS_LIST_INTEL_MPI_MEM_POLICY_CONTROL} ; do
+            for mpi_env_var in ${ENVUTILS_LIST_INTEL_MPI_MEM_POLICY_CONTROL[@]} ; do
                 get_line=$(env | grep "^${mpi_env_var}=" 2> /dev/null)
                 if [ ! -z "${get_line}" ] ; then
                     if [ "${is_first}" == "1" ] ; then
@@ -747,7 +1053,7 @@ if [ "${#}" -ne "0" ] ; then
             # Asynchronous Progress Control
             name_section="Asynchronous Progress Control"
             is_first=1
-            for mpi_env_var in ${ENVUTILS_LIST_INTEL_MPI_ASYNC_PROGRESS} ; do
+            for mpi_env_var in ${ENVUTILS_LIST_INTEL_MPI_ASYNC_PROGRESS[@]} ; do
                 get_line=$(env | grep "^${mpi_env_var}=" 2> /dev/null)
                 if [ ! -z "${get_line}" ] ; then
                     if [ "${is_first}" == "1" ] ; then
@@ -760,12 +1066,12 @@ if [ "${#}" -ne "0" ] ; then
                     fi
                     echo ${get_line}
                 fi
-            done
+             done
 
             # Multi-EP
             name_section="Multi-EP"
             is_first=1
-            for mpi_env_var in ${ENVUTILS_LIST_INTEL_MPI_MULTI_EP} ; do
+            for mpi_env_var in ${ENVUTILS_LIST_INTEL_MPI_MULTI_EP[@]} ; do
                 get_line=$(env | grep "^${mpi_env_var}=" 2> /dev/null)
                 if [ ! -z "${get_line}" ] ; then
                     if [ "${is_first}" == "1" ] ; then
@@ -783,7 +1089,7 @@ if [ "${#}" -ne "0" ] ; then
             # Others
             name_section="Others"
             is_first=1
-            for mpi_env_var in ${ENVUTILS_LIST_INTEL_MPI_OTHERS} ; do
+            for mpi_env_var in ${ENVUTILS_LIST_INTEL_MPI_OTHERS[@]} ; do
                 get_line=$(env | grep "^${mpi_env_var}=" 2> /dev/null)
                 if [ ! -z "${get_line}" ] ; then
                     if [ "${is_first}" == "1" ] ; then
@@ -794,6 +1100,16 @@ if [ "${#}" -ne "0" ] ; then
                         print_empty_line
                         is_first=0
                     fi
+                    echo ${get_line}
+                fi
+            done
+            ;;
+
+        --pocl)
+            # Display the content of all POCL environment variables
+            for pocl_env_var in ${ENVUTILS_LIST_POCL[@]} ; do
+                get_line=$(env | grep "^${pocl_env_var}=" 2> /dev/null)
+                if [ ! -z "${get_line}" ] ; then
                     echo ${get_line}
                 fi
             done

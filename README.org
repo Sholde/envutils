@@ -1,6 +1,6 @@
 #+title: envutils
 #+author: Sholde
-#+date: 15 June 2022
+#+date: 17 June 2022
 
 *envutils* is a tool for managing path environment variables. It follows the
 standard and therefore allows to manage standard environment variables like:
@@ -30,7 +30,9 @@ Without option:                   Print the PATH of all directories in all envir
 Options:
     -v, --version                 Display the version
     -h, --help                    Display this help
-    -l, --list                    Display the list of environment variables handled by envutils
+    -l, --list [ENV_VAR]          Display the list of standard environment variables handled by envutils
+                                  if ENV_VAR is not specified, else display the list of environment
+                                  variables of following packages: omp, mpi, impi, pocl
     -s, --show ENV_VAR            Display the content of ENV_VAR environment variable
     -sc, --show-content ENV_VAR   Display the content of all directories in ENV_VAR environment variable
     -sac, --show-all-content      Display the contents of all directories in all environment
@@ -42,6 +44,7 @@ Options:
     --omp                         Display the content of all OpenMP environment variables
     --mpi                         Display the content of all MPI environment variables (not really supported)
     --intel-mpi                   Display the content of all Intel MPI environment variables
+    --pocl                        Display the content of all POCL environment variables
 
 NOTE: variables surrounded by brackets [] are optional.
   #+end_src
