@@ -1,6 +1,6 @@
 #+title: envutils
 #+author: Sholde
-#+date: 17 June 2022
+#+date: January 2023
 
 *envutils* is a tool for managing path environment variables. It follows the
 standard and therefore allows to manage standard environment variables like:
@@ -15,7 +15,7 @@ paths, and ~CPATH~ for include paths.
   #+begin_src shell
     $ git clone https://github.com/Sholde/envutils.git
     $ cd envutils
-    $ sudo mv envutils INSTALL_PREFIX
+    $ sudo cp envutils INSTALL_PREFIX
   #+end_src
 
 * Usage
