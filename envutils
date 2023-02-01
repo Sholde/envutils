@@ -324,6 +324,14 @@ print_red() {
     fi
 }
 
+print_purple() {
+    if [ -t 1 ] && [ "${COLORTERM}" == "truecolor" ] ; then
+        echo -ne "\033[1;35m${1}\033[0m"
+    else # run on pipe
+        echo -n ${1}
+    fi
+}
+
 print_green() {
     if [ -t 1 ] && [ "${COLORTERM}" == "truecolor" ] ; then
         echo -ne "\033[1;32m${1}\033[0m"
@@ -858,6 +866,11 @@ if [ "${#}" -ne "0" ] ; then
                 export LD_LIBRARY_PATH=${to_install}/lib:${LD_LIBRARY_PATH}
                 export LIBRARY_PATH=${to_install}/lib:${LIBRARY_PATH}
                 export CPATH=${to_install}/include:${CPATH}
+
+                # Emit a warning if it is not a directory
+                if [ ! -d ${to_install} ] ; then
+                    print_purple "Warning: ${to_install} is not a direcotry\n"
+                fi
             else
                 print_red "Error: please 'source' this script in the way to set envrinoment variables\n"
                 print_red "Try: source ${0}\n"
@@ -1151,7 +1164,7 @@ else
                         else
                             echo -n ${dir}
                             echo -n " -- "
-                            print_red "Warning: this is not a directory"
+                            print_purple "Warning: this is not a directory"
                             print_empty_line
                         fi
                     fi
