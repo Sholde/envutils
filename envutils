@@ -800,7 +800,7 @@ if [ "${#}" -ne "0" ] ; then
                         # Check if dir is a directory
                         if [ -d ${dir} ] ; then
                             #
-                            found=$(ls ${dir}/${symbol} 2> /dev/null)
+                            found=$(ls --format=single-column -d ${dir}/${symbol} 2> /dev/null)
 
                             # Test if we found a symbol
                             if [ ! -z "${found}" ] ; then
@@ -825,7 +825,7 @@ if [ "${#}" -ne "0" ] ; then
                                 fi
 
                                 # Print the finding path
-                                ls --color=auto ${found}
+                                ls --format=single-column -d --color=auto ${found}
                             fi
 
                             # Reset found for the next iteration
@@ -838,7 +838,9 @@ if [ "${#}" -ne "0" ] ; then
                 fi
 
                 #
-                print_empty_line
+                if [ ${is_first} -eq 0 ] ; then
+                    print_empty_line
+                fi
             done
             ;;
 
