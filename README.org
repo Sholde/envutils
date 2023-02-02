@@ -1,6 +1,6 @@
 #+title: envutils
 #+author: Sholde
-#+date: January 2023
+#+date: February 2023
 
 *envutils* is a tool for managing path environment variables. It follows the
 standard and therefore allows to manage standard environment variables like:
@@ -9,14 +9,16 @@ paths, and ~CPATH~ for include paths.
 
 * Installation
 
-  Change ~INSTALL_PREFIX~ to the path where you want to install *envutils*.
-  It is recommended to install it on ~/usr/local/bin~.
-
   #+begin_src shell
     $ git clone https://github.com/Sholde/envutils.git
     $ cd envutils
-    $ sudo cp envutils INSTALL_PREFIX
+    $ sudo make install
   #+end_src
+
+  You can change the installation path by passing
+  ~INSTALL_PREFIX=/path/to/install~ on the make command line. Note that this
+  will create a subdirectory named ~bin~ and install the script in this
+  subdirectory. By default, the script is installed in ~/usr/local/bin~.
 
 * Usage
 
