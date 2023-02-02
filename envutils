@@ -825,7 +825,7 @@ if [ "${#}" -ne "0" ] ; then
                                 fi
 
                                 # Print the finding path
-                                ls --format=single-column -d --color=auto ${found}
+                                ls --format=single-column -d --color=auto ${dir}/${symbol} 2> /dev/null
                             fi
 
                             # Reset found for the next iteration
