@@ -860,6 +860,10 @@ if [ "${#}" -ne "0" ] ; then
         --install)
             # Install ${2} to standard environment variables
             to_install=${2}
+            if [[ ${to_install:0:1} != "/" ]] ; then
+                pwd_path=$(pwd)
+                to_install=${pwd_path}/${to_install}
+            fi
 
             # Test if the script is sourced
             if [ ${0} != "${BASH_SOURCE}" ] ; then
@@ -883,6 +887,10 @@ if [ "${#}" -ne "0" ] ; then
         --uninstall)
             # Uninstall ${2} from standard environment variables
             to_uninstall=${2}
+            if [[ ${to_uninstall:0:1} != "/" ]] ; then
+                pwd_path=$(pwd)
+                to_uninstall=${pwd_path}/${to_uninstall}
+            fi
 
             # Test if the script is sourced
             if [ ${0} != "${BASH_SOURCE}" ] ; then
