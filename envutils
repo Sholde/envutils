@@ -392,6 +392,12 @@ if [ "${#}" -ne "0" ] ; then
             echo "    -c, --clean [ENV_VAR]         Delete unnecessary colons (:) in ENV_VAR"
             echo "    --install PATH                Install PATH to standard environment variables"
             echo "    --uninstall PATH              Uninstall PATH from standard environment variables"
+            echo "    --install-bin PATH            Install PATH to PATH environment variable"
+            echo "    --install-lib PATH            Install PATH to LD_LIBRARIES_PATH and LIBRARIES_PATH environment variables"
+            echo "    --install-inc PATH            Install PATH to CPATH environment variable"
+            echo "    --uninstall-bin PATH          Uninstall PATH from PATH environment variable"
+            echo "    --uninstall-lib PATH          Uninstall PATH from LD_LIBRARIES_PATH and LIBRARIES_PATH environment variables"
+            echo "    --uninstall-inc PATH          Uninstall PATH from CPATH environment variable"
             echo "    --omp                         Display the content of all OpenMP environment variables"
             echo "    --mpi                         Display the content of all MPI environment variables (not really supported)"
             echo "    --intel-mpi                   Display the content of all Intel MPI environment variables"
@@ -871,6 +877,87 @@ if [ "${#}" -ne "0" ] ; then
                 export PATH=${to_install}/bin:${PATH}
                 export LD_LIBRARY_PATH=${to_install}/lib:${LD_LIBRARY_PATH}
                 export LIBRARY_PATH=${to_install}/lib:${LIBRARY_PATH}
+                if [ -d ${to_install}/lib64 ] ; then
+                    export LD_LIBRARY_PATH=${to_install}/lib64:${LD_LIBRARY_PATH}
+                    export LIBRARY_PATH=${to_install}/lib64:${LIBRARY_PATH}
+                fi
+                export CPATH=${to_install}/include:${CPATH}
+
+                # Emit a warning if it is not a directory
+                if [ ! -d ${to_install} ] ; then
+                    print_purple "Warning: ${to_install} is not a direcotry\n"
+                fi
+            else
+                print_red "Error: please 'source' this script in the way to set envrinoment variables\n"
+                print_red "Try: source ${0}\n"
+                ENVUTILS_ERROR_CODE=1
+            fi
+            ;;
+
+        --install-bin)
+            # Install ${2} to standard environment variables
+            to_install=${2}
+            if [[ ${to_install:0:1} != "/" ]] ; then
+                pwd_path=$(pwd)
+                to_install=${pwd_path}/${to_install}
+            fi
+
+            # Test if the script is sourced
+            if [ ${0} != "${BASH_SOURCE}" ] ; then
+                # Export variables
+                export PATH=${to_install}/bin:${PATH}
+
+                # Emit a warning if it is not a directory
+                if [ ! -d ${to_install} ] ; then
+                    print_purple "Warning: ${to_install} is not a direcotry\n"
+                fi
+            else
+                print_red "Error: please 'source' this script in the way to set envrinoment variables\n"
+                print_red "Try: source ${0}\n"
+                ENVUTILS_ERROR_CODE=1
+            fi
+            ;;
+
+        --install-lib)
+            # Install ${2} to standard environment variables
+            to_install=${2}
+            if [[ ${to_install:0:1} != "/" ]] ; then
+                pwd_path=$(pwd)
+                to_install=${pwd_path}/${to_install}
+            fi
+
+            # Test if the script is sourced
+            if [ ${0} != "${BASH_SOURCE}" ] ; then
+                # Export variables
+                export LD_LIBRARY_PATH=${to_install}/lib:${LD_LIBRARY_PATH}
+                export LIBRARY_PATH=${to_install}/lib:${LIBRARY_PATH}
+                if [ -d ${to_install}/lib64 ] ; then
+                    export LD_LIBRARY_PATH=${to_install}/lib64:${LD_LIBRARY_PATH}
+                    export LIBRARY_PATH=${to_install}/lib64:${LIBRARY_PATH}
+                fi
+
+                # Emit a warning if it is not a directory
+                if [ ! -d ${to_install} ] ; then
+                    print_purple "Warning: ${to_install} is not a direcotry\n"
+                fi
+            else
+                print_red "Error: please 'source' this script in the way to set envrinoment variables\n"
+                print_red "Try: source ${0}\n"
+                ENVUTILS_ERROR_CODE=1
+            fi
+            ;;
+
+        --install-inc)
+            # Install ${2} to standard environment variables
+            to_install=${2}
+            if [[ ${to_install:0:1} != "/" ]] ; then
+                pwd_path=$(pwd)
+                to_install=${pwd_path}/${to_install}
+            fi
+
+            # Test if the script is sourced
+            if [ ${0} != "${BASH_SOURCE}" ] ; then
+                # Export variables
                 export CPATH=${to_install}/include:${CPATH}
 
                 # Emit a warning if it is not a directory
@@ -898,6 +985,129 @@ if [ "${#}" -ne "0" ] ; then
                 export PATH=$(echo ${PATH} | sed "s+${to_uninstall}/bin++g")
                 export LD_LIBRARY_PATH=$(echo ${LD_LIBRARY_PATH} | sed "s+${to_uninstall}/lib++g")
                 export LIBRARY_PATH=$(echo ${LIBRARY_PATH} | sed "s+${to_uninstall}/lib++g")
+                if [ -d ${to_install}/lib64 ] ; then
+                    export LD_LIBRARY_PATH=$(echo ${LD_LIBRARY_PATH} | sed "s+${to_uninstall}/lib64++g")
+                    export LIBRARY_PATH=$(echo ${LD_LIBRARY_PATH} | sed "s+${to_uninstall}/lib64++g")
+                fi
+                export CPATH=$(echo ${CPATH} | sed "s+${to_uninstall}/include++g")
+
+                # clean all environment variables in ENVUTILS_LIST
+                for env_var in ${ENVUTILS_LIST} ; do
+                    clean_env ${env_var}
+                done
+
+                #
+                if [[ -z ${PATH} ]] ; then
+                    unset PATH
+                fi
+                if [[ -z ${LD_LIBRARY_PATH} ]] ; then
+                    unset LD_LIBRARY_PATH
+                fi
+                if [[ -z ${LIBRARY_PATH} ]] ; then
+                    unset LIBRARY_PATH
+                fi
+                if [[ -z ${CPATH} ]] ; then
+                    unset CPATH
+                fi
+            else
+                print_red "Error: please 'source' this script in the way to set envrinoment variables\n"
+                print_red "Try: source ${0}\n"
+                ENVUTILS_ERROR_CODE=1
+            fi
+            ;;
+
+        --uninstall-bin)
+            # Uninstall ${2} from standard environment variables
+            to_uninstall=${2}
+            if [[ ${to_uninstall:0:1} != "/" ]] ; then
+                pwd_path=$(pwd)
+                to_uninstall=${pwd_path}/${to_uninstall}
+            fi
+
+            # Test if the script is sourced
+            if [ ${0} != "${BASH_SOURCE}" ] ; then
+                # Export variables
+                export PATH=$(echo ${PATH} | sed "s+${to_uninstall}/bin++g")
+
+                # clean all environment variables in ENVUTILS_LIST
+                for env_var in ${ENVUTILS_LIST} ; do
+                    clean_env ${env_var}
+                done
+
+                #
+                if [[ -z ${PATH} ]] ; then
+                    unset PATH
+                fi
+                if [[ -z ${LD_LIBRARY_PATH} ]] ; then
+                    unset LD_LIBRARY_PATH
+                fi
+                if [[ -z ${LIBRARY_PATH} ]] ; then
+                    unset LIBRARY_PATH
+                fi
+                if [[ -z ${CPATH} ]] ; then
+                    unset CPATH
+                fi
+            else
+                print_red "Error: please 'source' this script in the way to set envrinoment variables\n"
+                print_red "Try: source ${0}\n"
+                ENVUTILS_ERROR_CODE=1
+            fi
+            ;;
+
+        --uninstall-lib)
+            # Uninstall ${2} from standard environment variables
+            to_uninstall=${2}
+            if [[ ${to_uninstall:0:1} != "/" ]] ; then
+                pwd_path=$(pwd)
+                to_uninstall=${pwd_path}/${to_uninstall}
+            fi
+
+            # Test if the script is sourced
+            if [ ${0} != "${BASH_SOURCE}" ] ; then
+                # Export variables
+                export LD_LIBRARY_PATH=$(echo ${LD_LIBRARY_PATH} | sed "s+${to_uninstall}/lib++g")
+                export LIBRARY_PATH=$(echo ${LIBRARY_PATH} | sed "s+${to_uninstall}/lib++g")
+                if [ -d ${to_install}/lib64 ] ; then
+                    export LD_LIBRARY_PATH=$(echo ${LD_LIBRARY_PATH} | sed "s+${to_uninstall}/lib64++g")
+                    export LIBRARY_PATH=$(echo ${LD_LIBRARY_PATH} | sed "s+${to_uninstall}/lib64++g")
+                fi
+
+                # clean all environment variables in ENVUTILS_LIST
+                for env_var in ${ENVUTILS_LIST} ; do
+                    clean_env ${env_var}
+                done
+
+                #
+                if [[ -z ${PATH} ]] ; then
+                    unset PATH
+                fi
+                if [[ -z ${LD_LIBRARY_PATH} ]] ; then
+                    unset LD_LIBRARY_PATH
+                fi
+                if [[ -z ${LIBRARY_PATH} ]] ; then
+                    unset LIBRARY_PATH
+                fi
+                if [[ -z ${CPATH} ]] ; then
+                    unset CPATH
+                fi
+            else
+                print_red "Error: please 'source' this script in the way to set envrinoment variables\n"
+                print_red "Try: source ${0}\n"
+                ENVUTILS_ERROR_CODE=1
+            fi
+            ;;
+
+        --uninstall-inc)
+            # Uninstall ${2} from standard environment variables
+            to_uninstall=${2}
+            if [[ ${to_uninstall:0:1} != "/" ]] ; then
+                pwd_path=$(pwd)
+                to_uninstall=${pwd_path}/${to_uninstall}
+            fi
+
+            # Test if the script is sourced
+            if [ ${0} != "${BASH_SOURCE}" ] ; then
+                # Export variables
                 export CPATH=$(echo ${CPATH} | sed "s+${to_uninstall}/include++g")
 
                 # clean all environment variables in ENVUTILS_LIST
